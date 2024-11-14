@@ -1,8 +1,9 @@
 // set initial value to zero
 let count = 0;
-let increaseInterval;
-let decreaseInterval;
+let autoIncreaseInterval;
+let autoDecreaseInterval;
 let speed = 100; // Interval speed in milliseconds (100ms by default)
+let isAutoMode = false; // Track if auto mode is enabled
 const value = document.querySelector("#value");
 const btns = document.querySelectorAll(".btn");
 const speedDisplay = document.querySelector("#speed-value");
@@ -19,17 +20,26 @@ btns.forEach(function (btn) {
   btn.addEventListener("click", function (e) {
     const styles = e.currentTarget.classList;
     if (styles.contains("decrease")) {
-      startDecreasing(); // Start automatic decreasing
+      if (isAutoMode) {
+        startAutoDecrease(); // Start automatic decreasing if auto mode is on
+      } else {
+        decreaseOnce(); // Decrease only once if auto mode is off
+      }
     } else if (styles.contains("increase")) {
-      startIncreasing(); // Start automatic increasing
+      if (isAutoMode) {
+        startAutoIncrease(); // Start automatic increasing if auto mode is on
+      } else {
+        increaseOnce(); // Increase only once if auto mode is off
+      }
     } else if (styles.contains("reset")) {
-      count = 0; // Reset counter
-      updateCounter();
+      resetCounter();
+    } else if (styles.contains("auto")) {
+      toggleAutoMode(); // Toggle auto mode on or off
     }
   });
 });
 
-// Generate a random number between min and max values and set it to the counter
+// Function to generate a random number between min and max and set it to the counter
 randomButton.addEventListener("click", function () {
   const min = parseInt(minInput.value);
   const max = parseInt(maxInput.value);
@@ -69,84 +79,102 @@ function updateCounter() {
   }, 200);
 }
 
-// Start increasing counter automatically with interval
-function startIncreasing() {
-  if (increaseInterval) return; // Prevent multiple intervals
+// Reset counter function
+function resetCounter() {
+  clearIntervals(); // Clear any active intervals
+  count = 0; // Reset counter
+  updateCounter();
+}
 
-  increaseInterval = setInterval(function () {
+// Single increase function for non-automatic mode
+function increaseOnce() {
+  if (count < MAX_COUNT) {
+    count++;
+    updateCounter();
+  }
+}
+
+// Single decrease function for non-automatic mode
+function decreaseOnce() {
+  if (count > 0) {
+    count--;
+    updateCounter();
+  }
+}
+
+// Function to start automatic increasing
+function startAutoIncrease() {
+  clearIntervals(); // Clear any active intervals to ensure only one is active
+
+  autoIncreaseInterval = setInterval(function () {
     if (count < MAX_COUNT) {
-      count++; // Increase the counter
+      count++;
       updateCounter();
     } else {
-      clearInterval(increaseInterval); // Stop if maximum reached
-      increaseInterval = null;
+      clearInterval(autoIncreaseInterval); // Stop if maximum reached
+      autoIncreaseInterval = null;
     }
-  }, speed); // Adjust this value to set speed
+  }, speed);
 }
 
-// Stop increasing counter when the button is released or mouse leaves
-document.querySelector(".increase").addEventListener("mouseup", function () {
-  clearInterval(increaseInterval);
-  increaseInterval = null;
-});
+// Function to start automatic decreasing
+function startAutoDecrease() {
+  clearIntervals(); // Clear any active intervals to ensure only one is active
 
-document.querySelector(".increase").addEventListener("mouseleave", function () {
-  clearInterval(increaseInterval);
-  increaseInterval = null;
-});
-
-// Start decreasing counter automatically with interval
-function startDecreasing() {
-  if (decreaseInterval) return; // Prevent multiple intervals
-
-  decreaseInterval = setInterval(function () {
-    if (count > 0) { // Only decrease if count is greater than 0
+  autoDecreaseInterval = setInterval(function () {
+    if (count > 0) {
       count--;
       updateCounter();
+    } else {
+      clearInterval(autoDecreaseInterval); // Stop if minimum reached
+      autoDecreaseInterval = null;
     }
-  }, speed); // Adjust this value to set speed
+  }, speed);
 }
 
-// Stop decreasing counter when the button is released or mouse leaves
-document.querySelector(".decrease").addEventListener("mouseup", function () {
-  clearInterval(decreaseInterval);
-  decreaseInterval = null;
-});
+// Toggle auto mode function
+function toggleAutoMode() {
+  isAutoMode = !isAutoMode; // Toggle auto mode
+  if (!isAutoMode) {
+    clearIntervals(); // Stop any automatic intervals if auto mode is turned off
+  }
+}
 
-document.querySelector(".decrease").addEventListener("mouseleave", function () {
-  clearInterval(decreaseInterval);
-  decreaseInterval = null;
-});
+// Clear all intervals
+function clearIntervals() {
+  clearInterval(autoIncreaseInterval);
+  clearInterval(autoDecreaseInterval);
+  autoIncreaseInterval = null;
+  autoDecreaseInterval = null;
+}
 
 // Speed control buttons for increasing and decreasing speed
 document.querySelector(".speed-up").addEventListener("click", function () {
-  if (speed > 10) { // Prevent the speed from being too fast
-    speed -= 10; // Decrease interval time to speed up
+  if (speed > 10) {
+    speed -= 10; // Increase speed (lower interval)
   }
   updateSpeedDisplay();
 });
 
 document.querySelector(".speed-down").addEventListener("click", function () {
-  speed += 10; // Increase interval time to slow down
+  speed += 10; // Decrease speed (increase interval)
   updateSpeedDisplay();
 });
 
 // Update the displayed speed value
 function updateSpeedDisplay() {
   speedDisplay.textContent = `${speed}ms`; // Update the speed in the UI
-  console.log(`Current speed: ${speed}ms`); // Optional: Log the speed to console for debugging
 }
 
 // Keyboard controls for increasing, decreasing, and resetting counter
 document.addEventListener("keydown", function (e) {
   if (e.key === "ArrowUp" && count < MAX_COUNT) {
-    count++; // Only increase if it's less than MAX_COUNT
-  } else if (e.key === "ArrowDown") {
-    if (count > 0) { // Only decrease if count is greater than 0
-      count--;
-    }
+    count++;
+  } else if (e.key === "ArrowDown" && count > 0) {
+    count--;
   } else if (e.key === "Escape") {
-    count = 0;
+    resetCounter();
   }
   updateCounter();
 });
+    
